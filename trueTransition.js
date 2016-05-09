@@ -30,51 +30,72 @@ for (let i = 0; i < props.length; ++i) {
 
 /////////////////////////////////////////////////////////////
 
-function abs(v) { return v < 0 ? -v : v }
-
 function CurveVisualizer(canvas) {
-    let ctx = canvas.getContext('2d'), w = canvas.width, h = canvas.height, oX, oY, iX, iY, getPosition;
+    let ctx = canvas.getContext('2d'), w = canvas.width, h = canvas.height,
+        oX = 0, oY = 0, iX = 0, iY = 0, hor = 0, dir = 0, firstLineColor = 0, secondLineColor = 0, getPosition = 0;
 
     function flush() {
         // ctx.fillStyle = '#fff';
         ctx.clearRect(0, 0, w, h);
         // ctx.fillStyle = '#DDD';
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#ccc';
         ctx.strokeRect(oX, oY, iX, iY);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#000';
     }
 
     function drawLines(x, y) {
-        ctx.fillStyle = "#f00";
+        ctx.fillStyle = firstLineColor;
         ctx.fillRect(x, 10, 1, h - 20);
-        ctx.fillStyle = "#000";
+        ctx.fillStyle = secondLineColor;
         ctx.fillRect(10, y, w - 20, 1);
     }
 
     this.clear = function() {
         ctx.beginPath();
         flush();
-        drawLines(oX, oY);
-        ctx.moveTo(oX, oY);
+        let startX = 0, startY = 0;
+        hor ? dir ? (startX = oX) && (startY = h - oY) : (startX = w - oX) && (startY = h - oY) :
+              dir ? (startX = oX) && (startY =     oY) : (startX =     oX) && (startY = h - oY);
+        drawLines(startX, startY);
+        ctx.moveTo(startX, startY);
     };
 
-    this.setField = function(x, y, horizontal) {
-        getPosition = horizontal ?
-            function(x, y) { return [oX + iX * y, h - oY - iY * x]; } :
-            function(x, y) { return [oX + iX * x,     oY + iY * y]; };
+    this.init = function(horizontal, direction, x, y) {
+        x = x || 20; y = y || 20;
+        hor = horizontal;
+        // dir = direction >= 0 ? 1 : 0;
+        dir = direction ? direction > 0 ? 1 : 0 : 1;
+        if (hor) {
+            firstLineColor  = '#f00';
+            secondLineColor = '#000';
+            getPosition = dir ?
+                function(x, y) { return [    oX + iX * y, h - oY - iY * x]; } :
+                function(x, y) { return [w - oX - iX * y, h - oY - iY * x]; };
+        }
+        else {
+            firstLineColor  = '#000';
+            secondLineColor = '#f00';
+            getPosition = dir ?
+                function(x, y) { return [oX + iX * x,     oY + iY * y]; } :
+                function(x, y) { return [oX + iX * x, h - oY - iY * y]; };
+        }
         iX = (w - 2 * (oX = x));
         iY = (h - 2 * (oY = y));
         this.clear();
     };
-    this.setField(20, 20, 1);
 
-    this.draw = function (coord) {
+    this.draw = function (xy) {
         flush();
-        coord = getPosition(coord[0], coord[1]);
-        drawLines(coord[0], coord[1]);
-        ctx.lineTo(coord[0], coord[1]);
+        xy = getPosition(xy[0], xy[1]);
+        drawLines(xy[0], xy[1]);
+        ctx.lineTo(xy[0], xy[1]);
         ctx.stroke();
-        ctx.moveTo(coord[0], coord[1]);
+        ctx.moveTo(xy[0], xy[1]);
     };
 
+    this.init();
     return this;
 }
 
@@ -108,11 +129,10 @@ function serializeCssValue(value) {
 
 function animate(object, properties, duration, draw) {
     let cssStyle = object.style,
-        drawCurve = draw || function() {};
-
-    let computedStyle = getComputedStyle(object),
-        start = performance.now(), timePassed = 0, i = 0,
-        startValues = [], serializedEndValues = [], delta = [];
+        computedStyle = getComputedStyle(object),
+        start = performance.now(), drawCurve = draw || function() {},
+        startValues = [], serializedEndValues = [], delta = [],
+        timePassed = 0, i = 0;
 
     for (property in properties) {
         if (properties.hasOwnProperty(property)) {
@@ -155,13 +175,16 @@ function animate(object, properties, duration, draw) {
     });
 }
 
-var curve = new CurveVisualizer(document.getElementById('myCanvas'));
+var curve1 = new CurveVisualizer(document.getElementById('curve1'));
+var curve2 = new CurveVisualizer(document.getElementById('curve2'));
+curve2.init(1);
 
 var o1 = document.querySelector('.list');
 document.querySelector('.animate').addEventListener('click', function (e) {
     o1.style.marginLeft = 0;
-    curve.clear();
-    animate(o1, { marginLeft: 100 }, 1000, function(coord) {curve.draw(coord)});
+    curve1.clear();
+    curve2.clear();
+    animate(o1, { marginLeft: 100 }, 1000, function(coord) { curve1.draw(coord); curve2.draw(coord); });
 });
 
 var o2 = document.querySelector('.jqer');
