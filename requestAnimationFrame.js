@@ -2,7 +2,7 @@
     var performance = performance || { now: function() { return new Date().getTime(); } };
 
     let lastTime = 0, vendors = ['ms', 'moz', 'webkit', 'o'];
-    for(var x = 0; x < vendors.length && !$.requestAnimationFrame; ++x) {
+    for(let x = 0; x < vendors.length && !$.requestAnimationFrame; ++x) {
         $.requestAnimationFrame = $[vendors[x]+'RequestAnimationFrame'];
         $.cancelAnimationFrame = $[vendors[x]+'CancelAnimationFrame']
             || $[vendors[x]+'CancelRequestAnimationFrame'];

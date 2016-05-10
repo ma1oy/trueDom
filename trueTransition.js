@@ -32,16 +32,14 @@ for (let i = 0; i < props.length; ++i) {
 
 function CurveVisualizer(canvas) {
     let ctx = canvas.getContext('2d'), w = canvas.width, h = canvas.height,
-        oX = 0, oY = 0, iX = 0, iY = 0, hor = 0, dir = 0, firstLineColor = 0, secondLineColor = 0, getPosition = 0;
+        { oX, oY, iX, iY, rt, sw, firstLineColor, secondLineColor } = 0;
 
     function flush() {
-        // ctx.fillStyle = '#fff';
         ctx.clearRect(0, 0, w, h);
-        // ctx.fillStyle = '#DDD';
         ctx.lineWidth = 1;
         ctx.strokeStyle = '#ccc';
         ctx.strokeRect(oX, oY, iX, iY);
-        ctx.lineWidth = 2;
+        ctx.lineWidth = .5;
         ctx.strokeStyle = '#000';
     }
 
@@ -52,68 +50,47 @@ function CurveVisualizer(canvas) {
         ctx.fillRect(10, y, w - 20, 1);
     }
 
-    this.clear = function() {
+    this.clear = () => {
         ctx.beginPath();
         flush();
-        let startX = 0, startY = 0;
-        hor ? dir ? (startX = oX) && (startY = h - oY) : (startX = w - oX) && (startY = h - oY) :
-              dir ? (startX = oX) && (startY =     oY) : (startX =     oX) && (startY = h - oY);
-        drawLines(startX, startY);
-        ctx.moveTo(startX, startY);
+        drawLines(oX + iX / 2, h - oY - iY / 2);
     };
 
-    this.init = function(horizontal, direction, x, y) {
-        x = x || 20; y = y || 20;
-        hor = horizontal;
-        // dir = direction >= 0 ? 1 : 0;
-        dir = direction ? direction > 0 ? 1 : 0 : 1;
-        if (hor) {
-            firstLineColor  = '#f00';
-            secondLineColor = '#000';
-            getPosition = dir ?
-                function(x, y) { return [    oX + iX * y, h - oY - iY * x]; } :
-                function(x, y) { return [w - oX - iX * y, h - oY - iY * x]; };
-        }
-        else {
-            firstLineColor  = '#000';
-            secondLineColor = '#f00';
-            getPosition = dir ?
-                function(x, y) { return [oX + iX * x,     oY + iY * y]; } :
-                function(x, y) { return [oX + iX * x, h - oY - iY * y]; };
-        }
+    this.init = (rotate, swap, x = 50, y = 50) => {
+        rt = !!rotate; sw = !!swap;
+        sw ? (firstLineColor  = '#f00') && (secondLineColor = '#000') :
+             (firstLineColor  = '#000') && (secondLineColor = '#f00');
         iX = (w - 2 * (oX = x));
         iY = (h - 2 * (oY = y));
         this.clear();
     };
 
-    this.draw = function (xy) {
+    this.draw = (x, y) => {
+        let X = oX + iX * x, Y = h - oY - iY * y, d = !rt - rt, m = X;
+        X = rt * w + d * X;
+        Y = rt * h + d * Y;
+        X = !sw * X || Y;
+        Y = !sw * Y || m;
         flush();
-        xy = getPosition(xy[0], xy[1]);
-        drawLines(xy[0], xy[1]);
-        ctx.lineTo(xy[0], xy[1]);
+        drawLines(X, Y);
+        ctx.lineTo(X, Y);
         ctx.stroke();
-        ctx.moveTo(xy[0], xy[1]);
+        ctx.moveTo(X, Y);
     };
 
     this.init();
     return this;
 }
 
-function bezier(points, factor) {
-    var newPoints = [];
-    function calc(points) {
-        if (points.length < 2) return true;
-        newPoints = [];
-        for (let i = 0; i < points.length - 1; ++i) {
-            newPoints[i] = [
-                points[i][0] + (points[i + 1][0] - points[i][0]) * factor,
-                points[i][1] + (points[i + 1][1] - points[i][1]) * factor];
-            // console.log(newCoords[i][1]);
-        }
-        calc(newPoints);
+function bezier(p, f) {
+    if (p.length < 2) return p[0];
+    let P = [];
+    for (let i = 0; i < p.length - 1; ++i) {
+        P[i] = [
+            p[i][0] + (p[i + 1][0] - p[i][0]) * f,
+            p[i][1] + (p[i + 1][1] - p[i][1]) * f];
     }
-    calc(points);
-    return newPoints[0];
+    return bezier(P, f);
 }
 
 function serializeCssValue(value) {
@@ -148,15 +125,71 @@ function animate(object, properties, duration, draw) {
         ++i;
     }
 
+    var easeInElastic = function (x, t, b, c, d) {
+        var s=1.70158;var p=0;var a=c;
+        if (t==0) return b;  if ((t/=d)==1) return b+c;  if (!p) p=d*.3;
+        if (a < Math.abs(c)) { a=c; var s=p/4; }
+        else var s = p/(2*Math.PI) * Math.asin (c/a);
+        return -(a*Math.pow(2,10*(t-=1)) * Math.sin( (t*d-s)*(2*Math.PI)/p )) + b;
+    };
+
+    var easeOutBounce = function (x, t, b, c, d) {
+        if ((t/=d) < (1/2.75)) {
+            return c*(7.5625*t*t) + b;
+        } else if (t < (2/2.75)) {
+            return c*(7.5625*(t-=(1.5/2.75))*t + .75) + b;
+        } else if (t < (2.5/2.75)) {
+            return c*(7.5625*(t-=(2.25/2.75))*t + .9375) + b;
+        } else {
+            return c*(7.5625*(t-=(2.625/2.75))*t + .984375) + b;
+        }
+    };
+
+    var measeOutBounce = function (f) {
+        return  f < 1   / 2.75 ? 7.5625 *  f                  * f :
+                f < 2   / 2.75 ? 7.5625 * (f -= 1.5   / 2.75) * f + .75 :
+                f < 2.5 / 2.75 ? 7.5625 * (f -= 2.25  / 2.75) * f + .9375 :
+                                 7.5625 * (f -= 2.625 / 2.75) * f + .984375;
+    };
+    
+    var testEase = function(f) { //tension
+        let amp = 1, freq = 3, decay = 8; // 6 - 400
+        // return specialAbs(Math.cos(f * 10 * (freq - 1 + Math.pow(f, p)) / Math.PI)) * Math.pow(1-f, 4);
+        return amp * (Math.cos(freq * f * 2 * Math.PI)) / Math.exp(decay * (1-f));
+    };
+
     function calcFrame(time) {
         timePassed = time - start;
         timePassed < duration ? requestAnimationFrame(nextFrame) : timePassed = duration;
         i = 0;
         for (property in properties) {
             if (properties.hasOwnProperty(property)) {
-                let coord = bezier([[0, 0], [.42, 0], [.58, 1], [1, 1]], timePassed / duration);
-                drawCurve(coord);
-                cssStyle[property] = startValues[i] + delta[i] * coord[1] + serializedEndValues[i][1];
+                // let points = bezier([[0, 0], [.42, 0], [.58, 1], [1, 1]], timePassed / duration);
+                let points = bezier([
+                    [ 0.0,  0.0],
+                    [ 0.5,  0.1],
+                    [ 0.7, -0.8],
+                    [ 0.7,  2.0],
+                    [ 0.8, -2.0],
+                    [ 0.8,  2.0],
+                    [ 0.9, -2.5],
+                    [ 0.9,  1.0],
+                    [ 1.0,  1.0]
+                ], timePassed / duration);
+                drawCurve(timePassed / duration, points[1]);
+                cssStyle[property] = startValues[i] + delta[i] * points[1] + serializedEndValues[i][1];
+
+                // let point = easeOutBounce(startValues[i], timePassed, 0, delta[i], duration);
+                // let point = easeInElastic(startValues[i], timePassed, 0, delta[i], duration);
+                // drawCurve(timePassed / duration, point / delta[i] - startValues[i]);
+                // cssStyle[property] = point + serializedEndValues[i][1];
+
+                // let point = measeOutBounce(timePassed / duration);
+                // let point = testEase(timePassed / duration);
+                // drawCurve(timePassed / duration, point);
+                // cssStyle[property] = startValues[i] + delta[i] * point + serializedEndValues[i][1];
+
+                // console.log(point);
             }
             ++i;
         }
@@ -176,18 +209,23 @@ function animate(object, properties, duration, draw) {
 }
 
 var curve1 = new CurveVisualizer(document.getElementById('curve1'));
+// curve1.init(0, 1);
 var curve2 = new CurveVisualizer(document.getElementById('curve2'));
-curve2.init(1);
+curve2.init(1, 1);
 
 var o1 = document.querySelector('.list');
+var o2 = document.querySelector('.jq');
+
 document.querySelector('.animate').addEventListener('click', function (e) {
     o1.style.marginLeft = 0;
+    o2.style.marginRight = 0;
     curve1.clear();
     curve2.clear();
-    animate(o1, { marginLeft: 100 }, 1000, function(coord) { curve1.draw(coord); curve2.draw(coord); });
+    animate(o1, { marginLeft: 100 }, 1000, function(x, y) { curve1.draw(x, y); curve2.draw(x, y); });
+    // animate(o1, { marginLeft: 100 }, 1000, curve1.draw );
+    // animate(o2, { marginRight: 100 }, 1000);
 });
 
-var o2 = document.querySelector('.jqer');
 document.querySelector('.animateJq').addEventListener('click', function (e) {
     o2.style.marginRight = 0;
     $(o2).animate({ marginRight: 100 }, 1000, 'swing');
