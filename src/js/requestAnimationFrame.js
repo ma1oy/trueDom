@@ -1,5 +1,5 @@
 ;+function($) {
-    var performance = performance || { now: function() { return new Date().getTime(); } };
+    $.performance = $.performance || { now: function() { return new Date().getTime(); } };
 
     let lastTime = 0, vendors = ['ms', 'moz', 'webkit', 'o'];
     for(let x = 0; x < vendors.length && !$.requestAnimationFrame; ++x) {
@@ -10,7 +10,7 @@
 
     if (!$.requestAnimationFrame)
         $.requestAnimationFrame = function(callback/*, element*/) {
-            let currTime = performance.now(),
+            let currTime = $.performance.now(),
                 timeToCall = lastTime - currTime + 16 > 0 || 0;
             var id = $.setTimeout(function() { callback(currTime + timeToCall); }, timeToCall);
             lastTime = currTime + timeToCall;

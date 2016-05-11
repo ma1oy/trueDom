@@ -38,21 +38,6 @@ if (!Array.prototype.indexOf) {
     };
 }
 
-// MATH
-// function ceil(v) { return v > ~~v ? ~~++v : ~~v }
-function ceil(v) { return v > (v = ~~v) ? ++v : v }
-function floor(v) { return v < (v = ~~v) ? --v : v }
-function abs(v) { return v < 0 ? -v : v }
-// function round(v) { return v - ~~v < .5 ? ~~v : ~~++v }
-// function round(v) { return v - ~~v > -.5 ? ~~v : ~~--v }
-// function round(v) { return v < 0 ? floor(v) : ceil(v) }
-function round(v) {
-    var a = ~~v, b = v - a;
-    return v < 0 ? b > -.5 ? a : --a : b < .5 ? a : ++a;
-}
-function sign(v) { return v > 0 ? 1 : -1 }
-function trunc(v) { return ~~v }
-
 var $ = function(v) {
     // this.v = v;
 

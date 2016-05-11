@@ -1,3 +1,9 @@
+'use strict';
+
+import M from 'trueMath';
+
+console.log(M.abs(-4));
+
 var trueQuery = function(query) {
 
     var t = this, broodSelector = ' ', childrenSelector = '>', firstChild = ':first-child', childNumber = 1;

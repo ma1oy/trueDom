@@ -7,12 +7,13 @@
                 frequency: 3,
                 decay:     8
             },
-            angle: 0,
-            radius: 0
+            move: {
+                azi: 0,
+                radius: 0
+            }
         },
         bezier: (f, p) => {
-            if (p.length < 2) return p[0];
-            let P = [];
+            if (p.length < 2) return p[0]; let P = [];
             for (let i = 0; i < p.length - 1; ++i) {
                 P[i] = [p[i][0] + (p[i + 1][0] - p[i][0]) * f,
                         p[i][1] + (p[i + 1][1] - p[i][1]) * f];
@@ -26,7 +27,8 @@
             return [(p[0] - 1) * f, (p[1] - 1) * f];
         },
         cubicBezier: (f, p) => {
-            return bezier(f, [[0, 0], [p[0], p[1]], [p[2], p[3]], [1, 1]])
+            // return bezier(f, [[0, 0], [p[0], p[1]], [p[2], p[3]], [1, 1]])
+            return bezier(f, [[0, 0], ...p, [1, 1]])
         },
         easeIn: (f) => {
             return $.easing.quadBezier0(f, $.easing.defs.easeIn)
