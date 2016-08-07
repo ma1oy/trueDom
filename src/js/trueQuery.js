@@ -1,68 +1,66 @@
-'use strict';
+"use strict";
 
-import M from 'trueMath';
+const [load, query, selector] = [Symbol('load'), Symbol('query'), Symbol('selector')];
 
-console.log(M.abs(-4));
+class TrueQuery {
+    constructor(queryStr, context) {
+        this[selector] = $.default.selector;
+        this[query] = queryStr;
+        // this.__context__ = ctx;
+        TrueQuery.query === queryStr && TrueQuery.selection ?
+            [this[0], this[load]] = [TrueQuery.selection, () => this] :
+            [TrueQuery.query, this[load]] = [queryStr, () => {
+//--------------
+                console.log('load');
+                TrueQuery.selection = this[0] = context[this[selector]](this[query]);
+                this[load] = () => this;
+                return this;
+            }];
+    }
 
-var trueQuery = function(query) {
+    setSelector(functionName) {
+        this[selector] = functionName;
+        return this;
+    }
 
-    var t = this, broodSelector = ' ', childrenSelector = '>', firstChild = ':first-child', childNumber = 1;
+    limit(value) {
+        this[query] = 'querySelectorAll';
+        value == 1 ? this[query] = 'querySelector' : value > 1 ? this.__limit__ = value : 0;
+    }
 
-    t.deep = false;
-    t.query = query;
-    t.node = document;
+    type() {
+        this[query] = `input[type=${this[query]}]`;
+        return this.setSelector('querySelectorAll')
+    }
 
-    t.get = function() {
-        // return pre;
-        return t.node = t.deep || false ? t.node.querySelectorAll(t.query) : t.node.querySelector(t.query);
-    };
+    css(attr, val) {
+        this[load]();
+        // this[Symbol.for('load')]();
+        // console.log(attr + val);
+        this[0][0].style[attr] = val;
+        return this;
+    }
+}
 
-    t.deep = function (v) {
-        t.deep = v;
-        return t;
-    };
+let $ = (query, context = $.default.context) => new TrueQuery(query, context);
+$.fn = $.prototype = TrueQuery.prototype;
 
-    t.eq = function(i) {
-        t.query += ':nth-child(' + (i + 1) + ')';
-        return t;
-    };
-
-    t.child = function(query) {
-        t.deep = false;
-        t.query += broodSelector + query;
-        return t;
-    };
-
-    t.children = function(query, deep) {
-        t.query += deep || false ? broodSelector + query : childrenSelector + query;
-        return t;
-    };
-
-    t.animate = function() {
-        //
-    };
-
-    return t;
+$.symbols = {
+    load: load,
+    query: query,
+    selector: selector
 };
 
-trueQuery.test = function(f, n) {
-    n = n || 1000000;
-    var s = Date.now();
-    for (var i = 0; i < n; ++i) f();
-    var e = Date.now();
-    return e - s;
+$.default = {
+    context: document,
+    selector: 'querySelectorAll'
 };
 
-+function($) {
-    // $.fn.trueSlider = function() {
-        //
-    // };
-    // console.log($('.list').children('li').eq(2).children('ul').node);
+$.fn.hello = function () {
+    this[load]();
+    console.log('hello');
+    return this;
+};
 
-    console.log($('.list').children('li').eq(2).children('ul').get());
-
-    // console.log(trueQuery.test(function() {
-    //     var v = $('.list').children('li').eq(2).children('ul').get();
-        // var v = $('.list:first-child > li:nth-child(3) > ul').get();
-    // }), 10000);
-}(trueQuery);
+console.dir(TrueQuery);
+console.log($('body').css('background', 'green'));
